@@ -23,6 +23,8 @@ var http = require('http'),
 var base = require('../_base'),
     HttpResponse = base.require('webdriver.http.Response');
 
+var KeepAliveAgent = require('keep-alive-agent'),
+ 		agent = new KeepAliveAgent();
 
 /**
  * HTTP client for use with NodeJS.
@@ -70,7 +72,8 @@ HttpClient.prototype.send = function(httpRequest, callback) {
     host: this.options_.host,
     port: this.options_.port,
     path: path,
-    headers: httpRequest.headers
+    headers: httpRequest.headers,
+    agent: agent
   }, callback, data);
 };
 

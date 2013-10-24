@@ -34,5 +34,8 @@
     "shasum": "6809b801d3d7c8f27e2f0dc1e9bd97e86a0d535d"
   },
   "_from": "selenium-webdriver@",
-  "_resolved": "https://registry.npmjs.org/selenium-webdriver/-/selenium-webdriver-2.37.0.tgz"
+  "_resolved": "https://registry.npmjs.org/selenium-webdriver/-/selenium-webdriver-2.37.0.tgz",
+  "dependencies" : {
+    "keep-alive-agent": "*"
+  }
 }
