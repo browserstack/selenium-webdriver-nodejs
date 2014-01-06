@@ -24,7 +24,8 @@ var base = require('../_base'),
     HttpResponse = base.require('webdriver.http.Response');
 
 var KeepAliveAgent = require('keep-alive-agent'),
- 		agent = new KeepAliveAgent();
+    agent = new KeepAliveAgent();
+
 
 /**
  * HTTP client for use with NodeJS.

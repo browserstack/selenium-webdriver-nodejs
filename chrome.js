@@ -50,7 +50,7 @@ var ServiceBuilder = function(opt_exe) {
     throw Error(
         'The ChromeDriver could not be found on the current PATH. Please ' +
         'download the latest version of the ChromeDriver from ' +
-        'http://code.google.com/p/chromedriver/downloads/list and ensure ' +
+        'http://chromedriver.storage.googleapis.com/index.html and ensure ' +
         'it can be found on your PATH.');
   }
 
@@ -250,11 +250,11 @@ Options.fromCapabilities = function(capabilities) {
     options = o;
   } else if (o) {
     options.
-        addArguments(o.args).
-        addExtensions(o.extensions).
+        addArguments(o.args || []).
+        addExtensions(o.extensions || []).
+        detachDriver(!!o.detach).
         setChromeBinaryPath(o.binary).
         setChromeLogFile(o.logFile).
-        detachDriver(o.detach).
         setLocalState(o.localState).
         setUserPreferences(o.prefs);
   }
