@@ -1,5 +1,5 @@
 {
-  "name": "selenium-webdriver",
+  "name": "browserstack-webdriver",
   "version": "2.41.0",
   "description": "BrowserStack WebDriver JavaScript bindings with keep alive support",
   "keywords": [
