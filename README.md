@@ -12,8 +12,7 @@ Install via npm with
 
 ## Usage
 
-The sample below and others are included in the `example` directory. You may
-also find the tests for browserstack-webdriver informative.
+The sample below and others are included in the `example` directory. You may also find the tests for browserstack-webdriver informative.
 
     var webdriver = require('browserstack-webdriver');
     
@@ -38,35 +37,6 @@ also find the tests for browserstack-webdriver informative.
     });
     
     driver.quit();
-
-### Using the Builder API
-
-The `Builder` class is your one-stop shop for configuring new WebDriver
-instances. Rather than clutter your code with branches for the various browsers,
-the builder lets you set all options in one flow. When you call
-`Builder#build()`, all options irrelevant to the selected browser are dropped:
-
-    var webdriver = require('browserstack-webdriver'),
-        chrome = require('browserstack-webdriver/chrome'),
-        firefox = require('browserstack-webdriver/firefox');
-
-    var driver = new webdriver.Builder()
-        .forBrowser('firefox')
-        .setChromeOptions(/* ... */)
-        .setFirefoxOptions(/* ... */)
-        .build();
-
-Why would you want to configure options irrelevant to the target browser? The
-`Builder`'s API defines your _default_ configuration. You can change the target
-browser at runtime through the `SELENIUM_BROWSER` environment variable. For
-example, the `example/google_search.js` script is configured to run against
-Firefox. You can run the example against other browsers just by changing the
-runtime environment
-
-    # cd node_modules/browserstack-webdriver
-    node example/google_search
-    SELENIUM_BROWSER=chrome node example/google_search
-    SELENIUM_BROWSER=safari node example/google_search
 
 ## Documentation
 
