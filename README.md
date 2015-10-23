@@ -1,75 +1,101 @@
-# browserstack-webdriver
+# selenium-webdriver
+
+Selenium is a browser automation library. Most often used for testing
+web-applications, Selenium may be used for any task that requires automating
+interaction with the browser.
 
 ## Installation
 
-Install the latest published version using `npm`:
+Install via npm with
 
     npm install browserstack-webdriver
 
-In addition to the npm package, you will to download the WebDriver
-implementations you wish to utilize. As of 2.34.0, `browserstack-webdriver`
-natively supports the [ChromeDriver](http://chromedriver.storage.googleapis.com/index.html).
-Simply download a copy and make sure it can be found on your `PATH`. The other
-drivers (e.g. Firefox, Internet Explorer, and Safari), still require the
-[standalone Selenium server](http://selenium-release.storage.googleapis.com/index.html).
-
-### Running the tests
-
-To run the tests, you will need to download a copy of the
-[ChromeDriver](http://chromedriver.storage.googleapis.com/index.html) and make
-sure it can be found on your `PATH`.
-
-    npm test browserstack-webdriver
-
-To run the tests against multiple browsers, download the
-[Selenium server](http://selenium-release.storage.googleapis.com/index.html) and
-specify its location through the `SELENIUM_SERVER_JAR` environment variable.
-You can use the `SELENIUM_BROWSER` environment variable to define a
-comma-separated list of browsers you wish to test against. For example:
-
-    export SELENIUM_SERVER_JAR=path/to/selenium-server-standalone-2.33.0.jar
-    SELENIUM_BROWSER=chrome,firefox npm test browserstack-webdriver
-
 ## Usage
 
+The sample below and others are included in the `example` directory. You may
+also find the tests for browserstack-webdriver informative.
 
-    var webdriver = require('browserstack-webdriver');
+   var webdriver = require('browserstack-webdriver');
 
-    var driver = new webdriver.Builder().
-        withCapabilities(webdriver.Capabilities.chrome()).
+   // Input capabilities
+   var capabilities = {
+        'browser' : 'firefox', 
+        'browserstack.user' : BROWSERSTACK_USERNAME,
+        'browserstack.key' : BROWSERSTACK_KEY
+   }
+
+   var driver = new webdriver.Builder().
+        usingServer('http://hub.browserstack.com/wd/hub').
+        withCapabilities(capabilities).
         build();
 
-    driver.get('http://www.google.com');
-    driver.findElement(webdriver.By.name('q')).sendKeys('webdriver');
-    driver.findElement(webdriver.By.name('btnG')).click();
-    driver.wait(function() {
-      return driver.getTitle().then(function(title) {
-        return title === 'webdriver - Google Search';
-      });
-    }, 1000);
+   driver.get('http://www.google.com/ncr');
+   driver.findElement(webdriver.By.name('q')).sendKeys('BrowserStack');
+   driver.findElement(webdriver.By.name('btnG')).click();
 
-    driver.quit();
+   driver.getTitle().then(function(title) {
+        console.log(title);
+   });
+
+   driver.quit();
 
 ## Documentation
 
-Full documentation is available on the [Selenium project wiki](http://code.google.com/p/selenium/wiki/WebDriverJs "User guide").
+API documentation is included in the `docs` directory and is also available
+online from the [Selenium project][api]. Addition resources include
+
+- the #selenium channel on freenode IRC
+- the [selenium-users@googlegroups.com][users] list
+- [SeleniumHQ](http://www.seleniumhq.org/docs/) documentation
 
 ## Issues
 
-Please report any issues using the [Selenium issue tracker](https://github.com/browserstack/selenium-webdriver-nodejs/issues).
+Please report any issues using the [Selenium issue tracker][issues]. When using
+the issue tracker
+
+- __Do__ include a detailed description of the problem.
+- __Do__ include a link to a [gist](http://gist.github.com/) with any
+    interesting stack traces/logs (you may also attach these directly to the bug
+    report).
+- __Do__ include a [reduced test case][reduction]. Reporting "unable to find
+    element on the page" is _not_ a valid report - there's nothing for us to
+    look into. Expect your bug report to be closed if you do not provide enough
+    information for us to investigate.
+- __Do not__ use the issue tracker to submit basic help requests. All help
+    inquiries should be directed to the [user forum][users] or #selenium IRC
+    channel.
+- __Do not__ post empty "I see this too" or "Any updates?" comments. These
+    provide no additional information and clutter the log.
+- __Do not__ report regressions on closed bugs as they are not actively
+    monitored for upates (especially bugs that are >6 months old). Please open a
+    new issue and reference the original bug in your report.
 
 ## License
 
-Copyright 2009-2014 Software Freedom Conservancy
+Licensed to the Software Freedom Conservancy (SFC) under one
+or more contributor license agreements.  See the NOTICE file
+distributed with this work for additional information
+regarding copyright ownership.  The SFC licenses this file
+to you under the Apache License, Version 2.0 (the
+"License"); you may not use this file except in compliance
+with the License.  You may obtain a copy of the License at
 
-Licensed under the Apache License, Version 2.0 (the "License");
-you may not use this file except in compliance with the License.
-You may obtain a copy of the License at
+http://www.apache.org/licenses/LICENSE-2.0
 
-     http://www.apache.org/licenses/LICENSE-2.0
+Unless required by applicable law or agreed to in writing,
+software distributed under the License is distributed on an
+"AS IS" BASIS, WITHOUT WARRANTIES OR CONDITIONS OF ANY
+KIND, either express or implied.  See the License for the
+specific language governing permissions and limitations
+under the License.
 
-Unless required by applicable law or agreed to in writing, software
-distributed under the License is distributed on an "AS IS" BASIS,
-WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
-See the License for the specific language governing permissions and
-limitations under the License.
+[api]: http://selenium.googlecode.com/git/docs/api/javascript/index.html
+[cla]: http://goo.gl/qC50R
+[chrome]: http://chromedriver.storage.googleapis.com/index.html
+[gh]: https://github.com/SeleniumHQ/selenium/
+[issues]: https://github.com/SeleniumHQ/selenium/issues
+[opera]: https://github.com/operasoftware/operachromiumdriver/releases
+[phantomjs]: http://phantomjs.org/
+[reduction]: http://www.webkit.org/quality/reduction.html
+[release]: http://selenium-release.storage.googleapis.com/index.html
+[users]: https://groups.google.com/forum/#!forum/selenium-users

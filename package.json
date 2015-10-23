@@ -1,7 +1,8 @@
 {
   "name": "browserstack-webdriver",
-  "version": "2.41.1",
-  "description": "BrowserStack WebDriver JavaScript bindings with keep alive support",
+  "version": "2.47.0",
+  "description": "Browserstack Webdriver Javascript bindings with keep alive support",
+  "license": "Apache-2.0",
   "keywords": [
     "automation",
     "selenium",
@@ -16,26 +17,26 @@
   "main": "./index",
   "repository": {
     "type": "git",
-    "url": "https://github.com/browserstack/selenium-webdriver-nodejs"
+    "url": "https://https://github.com/browserstack/selenium-webdriver-nodejs.git"
   },
   "engines": {
-    "node": ">= 0.8.x"
+    "node": ">= 0.12.x"
+  },
+  "dependencies": {
+    "adm-zip": "0.4.4",
+    "rimraf": "^2.2.8",
+    "tmp": "0.0.24",
+    "ws": "^0.8.0",
+    "xml2js": "0.4.4"
   },
   "devDependencies": {
-    "mocha": "~1.10.0"
+    "express": "^4.11.2",
+    "mocha": ">= 1.21.x",
+    "multer": "^0.1.7",
+    "promises-aplus-tests": "^2.1.0",
+    "serve-index": "^1.6.1"
   },
   "scripts": {
-    "test": "node_modules/mocha/bin/mocha -R list --recursive test"
-  },
-  "readme": "# browserstack-webdriver\n\n## Installation\n\nInstall the latest published version using `npm`:\n\n    npm install browserstack-webdriver\n\nIn addition to the npm package, you will to download the WebDriver\nimplementations you wish to utilize. As of 2.34.0, `browserstack-webdriver`\nnatively supports the [ChromeDriver](http://chromedriver.storage.googleapis.com/index.html).\nSimply download a copy and make sure it can be found on your `PATH`. The other\ndrivers (e.g. Firefox, Internet Explorer, and Safari), still require the\n[standalone Selenium server](http://selenium-release.storage.googleapis.com/index.html).\n\n### Running the tests\n\nTo run the tests, you will need to download a copy of the\n[ChromeDriver](http://chromedriver.storage.googleapis.com/index.html) and make\nsure it can be found on your `PATH`.\n\n    npm test browserstack-webdriver\n\nTo run the tests against multiple browsers, download the\n[Selenium server](http://selenium-release.storage.googleapis.com/index.html) and\nspecify its location through the `SELENIUM_SERVER_JAR` environment variable.\nYou can use the `SELENIUM_BROWSER` environment variable to define a\ncomma-separated list of browsers you wish to test against. For example:\n\n    export SELENIUM_SERVER_JAR=path/to/selenium-server-standalone-2.33.0.jar\n    SELENIUM_BROWSER=chrome,firefox npm test browserstack-webdriver\n\n## Usage\n\n\n    var webdriver = require('browserstack-webdriver');\n\n    var driver = new webdriver.Builder().\n        withCapabilities(webdriver.Capabilities.chrome()).\n        build();\n\n    driver.get('http://www.google.com');\n    driver.findElement(webdriver.By.name('q')).sendKeys('webdriver');\n    driver.findElement(webdriver.By.name('btnG')).click();\n    driver.wait(function() {\n      return driver.getTitle().then(function(title) {\n        return title === 'webdriver - Google Search';\n      });\n    }, 1000);\n\n    driver.quit();\n\n## Documentation\n\nFull documentation is available on the [Selenium project wiki](http://code.google.com/p/selenium/wiki/WebDriverJs \"User guide\").\n\n## Issues\n\nPlease report any issues using the [Selenium issue tracker](https://code.google.com/p/selenium/issues/list).\n\n## License\n\nCopyright 2009-2014 Software Freedom Conservancy\n\nLicensed under the Apache License, Version 2.0 (the \"License\");\nyou may not use this file except in compliance with the License.\nYou may obtain a copy of the License at\n\n     http://www.apache.org/licenses/LICENSE-2.0\n\nUnless required by applicable law or agreed to in writing, software\ndistributed under the License is distributed on an \"AS IS\" BASIS,\nWITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.\nSee the License for the specific language governing permissions and\nlimitations under the License.\n",
-  "readmeFilename": "README.md",
-  "_id": "browserstack-webdriver@2.41.0",
-  "dist": {
-    "shasum": "d59dd6297c13b821711bdd8775afa7dffef78ef4"
-  },
-  "_from": "browserstack-webdriver@",
-  "_resolved": "https://registry.npmjs.org/browserstack-webdriver/-/browserstack-webdriver-2.41.0.tgz",
-  "dependencies" : {
-    "keep-alive-agent": "*"
+    "test": "node_modules/.bin/mocha --harmony -t 600000 --recursive test"
   }
 }
