@@ -26,19 +26,23 @@ var base = require('../_base'),
 var KeepAliveAgent = require('keep-alive-agent'),
     agent = new KeepAliveAgent();
 
-
 /**
  * A {@link webdriver.http.Client} implementation using Node's built-in http
  * module.
  * @param {string} serverUrl URL for the WebDriver server to send commands to.
+ * @param {http.Agent=} opt_agent The agent to use for each request.
+ *     Defaults to {@code http.globalAgent}.
  * @constructor
  * @implements {webdriver.http.Client}
  */
-var HttpClient = function(serverUrl) {
+var HttpClient = function(serverUrl, opt_agent) {
   var parsedUrl = url.parse(serverUrl);
   if (!parsedUrl.hostname) {
     throw new Error('Invalid server URL: ' + serverUrl);
   }
+
+  /** @private {http.Agent} */
+  this.agent_ = opt_agent;
 
   /**
    * Base options for each request.
@@ -69,14 +73,18 @@ HttpClient.prototype.send = function(httpRequest, callback) {
     path += httpRequest.path;
   }
 
-  sendRequest({
+  var options = {
     method: httpRequest.method,
     host: this.options_.host,
     port: this.options_.port,
     path: path,
     headers: httpRequest.headers,
     agent: agent
-  }, callback, data);
+  };
+  if (this.agent_) {
+    options.agent = this.agent_;
+  }
+  sendRequest(options, callback, data);
 };
 
 
@@ -90,7 +98,15 @@ HttpClient.prototype.send = function(httpRequest, callback) {
 var sendRequest = function(options, callback, opt_data) {
   var request = http.request(options, function(response) {
     if (response.statusCode == 302 || response.statusCode == 303) {
-      var location = url.parse(response.headers['location']);
+      try {
+        var location = url.parse(response.headers['location']);
+      } catch (ex) {
+        callback(Error(
+            'Failed to parse "Location" header for server redirect: ' +
+            ex.message + '\nResponse was: \n' +
+            new HttpResponse(response.statusCode, response.headers, '')));
+        return;
+      }
 
       if (!location.hostname) {
         location.hostname = options.host;

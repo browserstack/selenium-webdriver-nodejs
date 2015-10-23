@@ -20,7 +20,7 @@ var assert = require('assert'),
 
 var util = require('../../http/util');
 
-describe('selenium-webdriver/http/util', function() {
+describe('browserstack-webdriver/http/util', function() {
 
   var server, baseUrl;
 

@@ -16,7 +16,7 @@
 /**
  * @fileoverview An example WebDriver script. This requires the chromedriver
  * to be present on the system PATH.
- * Usage: node selenium-webdriver/example/google_search.js
+ * Usage: node browserstack-webdriver/example/google_search.js
  */
 
 var fs = require('fs');

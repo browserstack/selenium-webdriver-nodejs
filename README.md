@@ -35,28 +35,38 @@ comma-separated list of browsers you wish to test against. For example:
 
     var webdriver = require('browserstack-webdriver');
 
+    // Input capabilities
+    var capabilities = {
+        'browserName' : 'firefox', 
+        'browserstack.user' : BROWSERSTACK_USERNAME,
+        'browserstack.key' : BROWSERSTACK_KEY
+    }
+    
     var driver = new webdriver.Builder().
-        withCapabilities(webdriver.Capabilities.chrome()).
-        build();
-
-    driver.get('http://www.google.com');
-    driver.findElement(webdriver.By.name('q')).sendKeys('webdriver');
+    usingServer('http://hub.browserstack.com/wd/hub').
+    withCapabilities(capabilities).
+    build();
+    
+    driver.get('http://www.google.com/ncr');
+    driver.findElement(webdriver.By.name('q')).sendKeys('BrowserStack');
     driver.findElement(webdriver.By.name('btnG')).click();
-    driver.wait(function() {
-      return driver.getTitle().then(function(title) {
-        return title === 'webdriver - Google Search';
-      });
-    }, 1000);
-
+    
+    driver.getTitle().then(function(title) {
+        console.log(title);
+    });
+    
     driver.quit();
+
 
 ## Documentation
 
-Full documentation is available on the [Selenium project wiki](http://code.google.com/p/selenium/wiki/WebDriverJs "User guide").
+API documentation is included in the docs module. The API documentation for the
+current release are also available online from the [Selenium project](http://selenium.googlecode.com/git/docs/api/javascript/index.html "API docs"). A full user guide is available on the
+[Selenium project wiki](http://code.google.com/p/selenium/wiki/WebDriverJs "User guide").
 
 ## Issues
 
-Please report any issues using the [Selenium issue tracker](https://github.com/browserstack/selenium-webdriver-nodejs/issues).
+Please report any issues using the [Selenium issue tracker](https://code.google.com/p/selenium/issues/list).
 
 ## License
 

@@ -27,20 +27,21 @@
  *   <li>xit
  * </ul>
  *
- * <p>The provided wrappers leverage the webdriver.promise.ControlFlow to
- * simplify writing asynchronous tests:
+ * <p>The provided wrappers leverage the {@link webdriver.promise.ControlFlow}
+ * to simplify writing asynchronous tests:
  * <pre><code>
- * var webdriver = require('selenium-webdriver'),
- *     remote = require('selenium-webdriver/remote'),
- *     test = require('selenium-webdriver/testing');
+ * var webdriver = require('browserstack-webdriver'),
+ *     portprober = require('browserstack-webdriver/net/portprober'),
+ *     remote = require('browserstack-webdriver/remote'),
+ *     test = require('browserstack-webdriver/testing');
  *
  * test.describe('Google Search', function() {
  *   var driver, server;
  *
  *   test.before(function() {
- *     server = new remote.SeleniumServer({
- *       jar: 'path/to/selenium-server-standalone.jar'
- *     });
+ *     server = new remote.SeleniumServer(
+ *         'path/to/selenium-server-standalone.jar',
+ *         {port: portprober.findFreePort()});
  *     server.start();
  *
  *     driver = new webdriver.Builder().
@@ -79,7 +80,8 @@
  * </code></pre>
  */
 
-var flow = require('..').promise.controlFlow();
+var promise = require('..').promise;
+var flow = promise.controlFlow();
 
 
 /**
@@ -103,31 +105,42 @@ function seal(fn) {
  */
 function wrapped(globalFn) {
   return function() {
-    switch (arguments.length) {
-      case 1:
-        globalFn(asyncTestFn(arguments[0]));
-        break;
-
-      case 2:
-        globalFn(arguments[0], asyncTestFn(arguments[1]));
-        break;
-
-      default:
-        throw Error('Invalid # arguments: ' + arguments.length);
+    if (arguments.length === 1) {
+      return globalFn(asyncTestFn(arguments[0]));
+    }
+    else if (arguments.length === 2) {
+      return globalFn(arguments[0], asyncTestFn(arguments[1]));
+    }
+    else {
+      throw Error('Invalid # arguments: ' + arguments.length);
     }
   };
 
   function asyncTestFn(fn) {
-    return function(done) {
-      this.timeout(0);
-      var timeout = this.timeout;
-      this.timeout = undefined;  // Do not let tests change the timeout.
-      try {
-        flow.execute(fn.bind(this)).then(seal(done), done);
-      } finally {
-        this.timeout = timeout;
+    var ret = function(done) {
+      function cleanupBeforeCallback() {
+        flow.reset();
+        return cleanupBeforeCallback.mochaCallback.apply(this, arguments);
       }
+      // We set this as an attribute of the callback function to allow us to
+      // test this properly.
+      cleanupBeforeCallback.mochaCallback = this.runnable().callback;
+
+      this.runnable().callback = cleanupBeforeCallback;
+
+      var testFn = fn.bind(this);
+      flow.execute(function() {
+        var done = promise.defer();
+        promise.asap(testFn(done.reject), done.fulfill, done.reject);
+        return done.promise;
+      }).then(seal(done), done);
     };
+
+    ret.toString = function() {
+      return fn.toString();
+    };
+
+    return ret;
   }
 }
 
