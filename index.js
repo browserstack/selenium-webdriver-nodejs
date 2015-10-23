@@ -1,17 +1,19 @@
-// Copyright 2012 Selenium committers
-// Copyright 2012 Software Freedom Conservancy
+// Licensed to the Software Freedom Conservancy (SFC) under one
+// or more contributor license agreements.  See the NOTICE file
+// distributed with this work for additional information
+// regarding copyright ownership.  The SFC licenses this file
+// to you under the Apache License, Version 2.0 (the
+// "License"); you may not use this file except in compliance
+// with the License.  You may obtain a copy of the License at
 //
-// Licensed under the Apache License, Version 2.0 (the "License");
-// you may not use this file except in compliance with the License.
-//     You may obtain a copy of the License at
+//   http://www.apache.org/licenses/LICENSE-2.0
 //
-// http://www.apache.org/licenses/LICENSE-2.0
-//
-// Unless required by applicable law or agreed to in writing, software
-// distributed under the License is distributed on an "AS IS" BASIS,
-// WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
-// See the License for the specific language governing permissions and
-// limitations under the License.
+// Unless required by applicable law or agreed to in writing,
+// software distributed under the License is distributed on an
+// "AS IS" BASIS, WITHOUT WARRANTIES OR CONDITIONS OF ANY
+// KIND, either express or implied.  See the License for the
+// specific language governing permissions and limitations
+// under the License.
 
 /**
  * @fileoverview The main user facing module. Exports WebDriver's primary
@@ -52,6 +54,14 @@ exports.Command = base.require('webdriver.Command');
 exports.EventEmitter = base.require('webdriver.EventEmitter');
 
 
+/** @type {function(new: webdriver.FileDetector)} */
+exports.FileDetector = base.require('webdriver.FileDetector');
+
+
+/** @type {function(new: webdriver.Serializable)} */
+exports.Serializable = base.require('webdriver.Serializable');
+
+
 /** @type {function(new: webdriver.Session)} */
 exports.Session = base.require('webdriver.Session');
 
@@ -62,6 +72,10 @@ exports.WebDriver = base.require('webdriver.WebDriver');
 
 /** @type {function(new: webdriver.WebElement)} */
 exports.WebElement = base.require('webdriver.WebElement');
+
+
+/** @type {function(new: webdriver.WebElementPromise)} */
+exports.WebElementPromise = base.require('webdriver.WebElementPromise');
 
 
 // Export the remainder of our API through getters to keep things cleaner
@@ -125,4 +139,10 @@ exports.WebElement = base.require('webdriver.WebElement');
 /** @type {webdriver.stacktrace.} */
 (exports.__defineGetter__('stacktrace', function() {
   return base.exportPublicApi('webdriver.stacktrace');
+}));
+
+
+/** @type {webdriver.until.} */
+(exports.__defineGetter__('until', function() {
+  return base.exportPublicApi('webdriver.until');
 }));
