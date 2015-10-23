@@ -33,11 +33,4 @@
     "scripts": {
         "test": "node_modules/.bin/mocha -t 600000 --recursive test"
     },
-    "readmeFilename": "README.md",
-    "_id": "browserstack-webdriver@2.43.5",
-    "_from": "browserstack-webdriver@",
-    "_resolved": "https://registry.npmjs.org/browserstack-webdriver/-/browserstack-webdriver-2.43.5.tgz",
-    "dist": {
-            "shasum": "d59dd6297c13b821711bdd8775afa7dffef78ef4"
-    }
 }
