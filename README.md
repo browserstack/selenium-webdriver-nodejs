@@ -14,30 +14,25 @@ Install via npm with
 
 The sample below and others are included in the `example` directory. You may
 also find the tests for browserstack-webdriver informative.
-
-   var webdriver = require('browserstack-webdriver');
-
-   // Input capabilities
-   var capabilities = {
+	
+	var webdriver = require('browserstack-webdriver');
+	// Input capabilities
+	var capabilities = {
         'browser' : 'firefox', 
         'browserstack.user' : BROWSERSTACK_USERNAME,
         'browserstack.key' : BROWSERSTACK_KEY
-   }
-
-   var driver = new webdriver.Builder().
+    }
+    var driver = new webdriver.Builder().
         usingServer('http://hub.browserstack.com/wd/hub').
         withCapabilities(capabilities).
         build();
-
-   driver.get('http://www.google.com/ncr');
-   driver.findElement(webdriver.By.name('q')).sendKeys('BrowserStack');
-   driver.findElement(webdriver.By.name('btnG')).click();
-
-   driver.getTitle().then(function(title) {
+    driver.get('http://www.google.com/ncr');
+    driver.findElement(webdriver.By.name('q')).sendKeys('BrowserStack');
+    driver.findElement(webdriver.By.name('btnG')).click();
+    driver.getTitle().then(function(title) {
         console.log(title);
-   });
-
-   driver.quit();
+        });
+    driver.quit();
 
 ## Documentation
 
