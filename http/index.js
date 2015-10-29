@@ -42,7 +42,7 @@ var HttpClient = function(serverUrl, opt_agent) {
   }
 
   /** @private {http.Agent} */
-  this.agent_ = opt_agent;
+  this.agent_ = opt_agent || agent;
 
   /**
    * Base options for each request.
@@ -79,7 +79,6 @@ HttpClient.prototype.send = function(httpRequest, callback) {
     port: this.options_.port,
     path: path,
     headers: httpRequest.headers,
-    agent: agent
   };
   if (this.agent_) {
     options.agent = this.agent_;
