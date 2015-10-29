@@ -12,7 +12,7 @@ Install via npm with
 
 ## Usage
 
-The sample below and others are included in the `example` directory. You may also find the tests for browserstack-webdriver informative.
+Below code is a sample test, which opens Google's homepage, searches for ‘browserstack’, and asks for the title of the search results page.
 
     var webdriver = require('browserstack-webdriver');
     
