@@ -47,7 +47,7 @@ var HttpClient = function(serverUrl, opt_agent, opt_proxy) {
   }
 
   /** @private {http.Agent} */
-  this.agent_ = opt_agent;
+  this.agent_ = opt_agent || agent;
 
   /** @private {string} */
   this.proxy_ = opt_proxy;
@@ -87,7 +87,6 @@ HttpClient.prototype.send = function(httpRequest, callback) {
     port: this.options_.port,
     path: path,
     headers: httpRequest.headers,
-    agent: agent
   };
 
   if (this.agent_) {
