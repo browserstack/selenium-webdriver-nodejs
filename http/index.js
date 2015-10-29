@@ -47,7 +47,7 @@ var HttpClient = function(serverUrl, opt_agent, opt_proxy) {
   }
 
   /** @private {http.Agent} */
-  this.agent_ = opt_agent;
+  this.agent_ = opt_agent || agent;
 
   /** @private {string} */
   this.proxy_ = opt_proxy;
