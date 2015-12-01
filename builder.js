@@ -401,7 +401,7 @@ Builder.prototype.build = function() {
     capabilities.set(Capability.PLATFORM, browser[2] || null);
   }
 
-  browser = capabilities.get(Capability.BROWSER_NAME);
+  browser = capabilities.get(Capability.BROWSER_NAME) || capabilities.get(Capability.BROWSER);
 
   if (typeof browser !== 'string') {
     throw TypeError(
