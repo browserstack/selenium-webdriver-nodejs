@@ -1,27 +1,34 @@
-// Copyright 2013 Software Freedom Conservancy
+// Licensed to the Software Freedom Conservancy (SFC) under one
+// or more contributor license agreements.  See the NOTICE file
+// distributed with this work for additional information
+// regarding copyright ownership.  The SFC licenses this file
+// to you under the Apache License, Version 2.0 (the
+// "License"); you may not use this file except in compliance
+// with the License.  You may obtain a copy of the License at
 //
-// Licensed under the Apache License, Version 2.0 (the "License");
-// you may not use this file except in compliance with the License.
-//     You may obtain a copy of the License at
+//   http://www.apache.org/licenses/LICENSE-2.0
 //
-// http://www.apache.org/licenses/LICENSE-2.0
-//
-// Unless required by applicable law or agreed to in writing, software
-// distributed under the License is distributed on an "AS IS" BASIS,
-// WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
-// See the License for the specific language governing permissions and
-// limitations under the License.
+// Unless required by applicable law or agreed to in writing,
+// software distributed under the License is distributed on an
+// "AS IS" BASIS, WITHOUT WARRANTIES OR CONDITIONS OF ANY
+// KIND, either express or implied.  See the License for the
+// specific language governing permissions and limitations
+// under the License.
 
 'use strict';
 
-var spawn = require('child_process').spawn,
-    os = require('os'),
+var AdmZip = require('adm-zip'),
+    AdmConstants = require('adm-zip/util/constants'),
+    fs = require('fs'),
     path = require('path'),
     url = require('url'),
     util = require('util');
 
-var promise = require('../').promise,
+var _base = require('../_base'),
+    webdriver = require('../'),
+    promise = require('../').promise,
     httpUtil = require('../http/util'),
+    exec = require('../io/exec'),
     net = require('../net'),
     portprober = require('../net/portprober');
 
@@ -29,23 +36,23 @@ var promise = require('../').promise,
 
 /**
  * Configuration options for a DriverService instance.
- * <ul>
- * <li>{@code port} - The port to start the server on (must be > 0). If the
- *     port is provided as a promise, the service will wait for the promise to
- *     resolve before starting.
- * <li>{@code args} - The arguments to pass to the service. If a promise is
- *     provided, the service will wait for it to resolve before starting.
- * <li>{@code path} - The base path on the server for the WebDriver wire
- *     protocol (e.g. '/wd/hub'). Defaults to '/'.
- * <li>{@code env} - The environment variables that should be visible to the
- *     server process. Defaults to inheriting the current process's
- *     environment.
- * <li>{@code stdio} - IO configuration for the spawned server process. For
- *     more information, refer to the documentation of
- *     {@code child_process.spawn}.
- * </ul>
+ *
+ * - `loopback` - Whether the service should only be accessed on this host's
+ *     loopback address.
+ * - `port` - The port to start the server on (must be > 0). If the port is
+ *     provided as a promise, the service will wait for the promise to resolve
+ *     before starting.
+ * - `args` - The arguments to pass to the service. If a promise is provided,
+ *     the service will wait for it to resolve before starting.
+ * - `path` - The base path on the server for the WebDriver wire protocol
+ *     (e.g. '/wd/hub'). Defaults to '/'.
+ * - `env` - The environment variables that should be visible to the server
+ *     process. Defaults to inheriting the current process's environment.
+ * - `stdio` - IO configuration for the spawned server process. For more
+ *     information, refer to the documentation of `child_process.spawn`.
  *
  * @typedef {{
+ *   loopback: (boolean|undefined),
  *   port: (number|!webdriver.promise.Promise.<number>),
  *   args: !(Array.<string>|webdriver.promise.Promise.<!Array.<string>>),
  *   path: (string|undefined),
@@ -59,10 +66,10 @@ var ServiceOptions;
 /**
  * Manages the life and death of a native executable WebDriver server.
  *
- * <p>It is expected that the driver server implements the
- * <a href="http://code.google.com/p/selenium/wiki/JsonWireProtocol">WebDriver
- * Wire Protocol</a>. Furthermore, the managed server should support multiple
- * concurrent sessions, so that this class may be reused for multiple clients.
+ * It is expected that the driver server implements the
+ * https://github.com/SeleniumHQ/selenium/wiki/JsonWireProtocol.
+ * Furthermore, the managed server should support multiple concurrent sessions,
+ * so that this class may be reused for multiple clients.
  *
  * @param {string} executable Path to the executable to run.
  * @param {!ServiceOptions} options Configuration options for the service.
@@ -72,6 +79,9 @@ function DriverService(executable, options) {
 
   /** @private {string} */
   this.executable_ = executable;
+
+  /** @private {boolean} */
+  this.loopbackOnly_ = !!options.loopback;
 
   /** @private {(number|!webdriver.promise.Promise.<number>)} */
   this.port_ = options.port;
@@ -89,6 +99,21 @@ function DriverService(executable, options) {
 
   /** @private {(string|!Array.<string|number|!Stream|null|undefined>)} */
   this.stdio_ = options.stdio || 'ignore';
+
+  /**
+   * A promise for the managed subprocess, or null if the server has not been
+   * started yet. This promise will never be rejected.
+   * @private {promise.Promise.<!exec.Command>}
+   */
+  this.command_ = null;
+
+  /**
+   * Promise that resolves to the server's address or null if the server has
+   * not been started. This promise will be rejected if the server terminates
+   * before it starts accepting WebDriver requests.
+   * @private {promise.Promise.<string>}
+   */
+  this.address_ = null;
 }
 
 
@@ -98,26 +123,6 @@ function DriverService(executable, options) {
  * @type {number}
  */
 DriverService.DEFAULT_START_TIMEOUT_MS = 30 * 1000;
-
-
-/** @private {child_process.ChildProcess} */
-DriverService.prototype.process_ = null;
-
-
-/**
- * Promise that resolves to the server's address or null if the server has not
- * been started.
- * @private {webdriver.promise.Promise.<string>}
- */
-DriverService.prototype.address_ = null;
-
-
-/**
- * Promise that tracks the status of shutting down the server, or null if the
- * server is not currently shutting down.
- * @private {webdriver.promise.Promise}
- */
-DriverService.prototype.shutdownHook_ = null;
 
 
 /**
@@ -134,6 +139,8 @@ DriverService.prototype.address = function() {
 
 
 /**
+ * Returns whether the underlying process is still running. This does not take
+ * into account whether the process is in the process of shutting down.
  * @return {boolean} Whether the underlying service process is running.
  */
 DriverService.prototype.isRunning = function() {
@@ -145,7 +152,7 @@ DriverService.prototype.isRunning = function() {
  * Starts the server if it is not already running.
  * @param {number=} opt_timeoutMs How long to wait, in milliseconds, for the
  *     server to start accepting requests. Defaults to 30 seconds.
- * @return {!webdriver.promise.Promise.<string>} A promise that will resolve
+ * @return {!promise.Promise.<string>} A promise that will resolve
  *     to the server's base URL when it has started accepting requests. If the
  *     timeout expires before the server has started, the promise will be
  *     rejected.
@@ -158,56 +165,53 @@ DriverService.prototype.start = function(opt_timeoutMs) {
   var timeout = opt_timeoutMs || DriverService.DEFAULT_START_TIMEOUT_MS;
 
   var self = this;
+  this.command_ = promise.defer();
   this.address_ = promise.defer();
   this.address_.fulfill(promise.when(this.port_, function(port) {
     if (port <= 0) {
       throw Error('Port must be > 0: ' + port);
     }
     return promise.when(self.args_, function(args) {
-      self.process_ = spawn(self.executable_, args, {
+      var command = exec(self.executable_, {
+        args: args,
         env: self.env_,
         stdio: self.stdio_
-      }).once('exit', onServerExit);
+      });
 
-      // This process should not wait on the spawned child, however, we do
-      // want to ensure the child is killed when this process exits.
-      self.process_.unref();
-      process.once('exit', killServer);
+      self.command_.fulfill(command);
+
+      var earlyTermination = command.result().then(function(result) {
+        var error = result.code == null ?
+            Error('Server was killed with ' + result.signal) :
+            Error('Server terminated early with status ' + result.code);
+        self.address_.reject(error);
+        self.address_ = null;
+        self.command_ = null;
+        throw error;
+      });
 
       var serverUrl = url.format({
         protocol: 'http',
-        hostname: net.getAddress() || net.getLoopbackAddress(),
+        hostname: !self.loopbackOnly_ && net.getAddress() ||
+            net.getLoopbackAddress(),
         port: port,
         pathname: self.path_
       });
 
-      return httpUtil.waitForServer(serverUrl, timeout).then(function() {
+      return new promise.Promise(function(fulfill, reject) {
+        var ready = httpUtil.waitForServer(serverUrl, timeout)
+            .then(fulfill, reject);
+        earlyTermination.thenCatch(function(e) {
+          ready.cancel(e);
+          reject(Error(e.message));
+        });
+      }).then(function() {
         return serverUrl;
       });
     });
   }));
 
   return this.address_;
-
-  function onServerExit(code, signal) {
-    self.address_.reject(code == null ?
-        Error('Server was killed with ' + signal) :
-        Error('Server exited with ' + code));
-
-    if (self.shutdownHook_) {
-      self.shutdownHook_.fulfill();
-    }
-
-    self.shutdownHook_ = null;
-    self.address_ = null;
-    self.process_ = null;
-    process.removeListener('exit', killServer);
-  }
-
-  function killServer() {
-    process.removeListener('exit', killServer);
-    self.process_ && self.process_.kill('SIGTERM');
-  }
 };
 
 
@@ -219,26 +223,12 @@ DriverService.prototype.start = function(opt_timeoutMs) {
  *     the server has been stopped.
  */
 DriverService.prototype.kill = function() {
-  if (!this.address_) {
+  if (!this.address_ || !this.command_) {
     return promise.fulfilled();  // Not currently running.
   }
-
-  if (!this.shutdownHook_) {
-    // No process: still starting; wait on address.
-    // Otherwise, kill the process now. Exit handler will resolve the
-    // shutdown hook.
-    if (this.process_) {
-      this.shutdownHook_ = promise.defer();
-      this.process_.kill('SIGTERM');
-    } else {
-      var self = this;
-      this.shutdownHook_ = this.address_.thenFinally(function() {
-        self.process_ && self.process_.kill('SIGTERM');
-      });
-    }
-  }
-
-  return this.shutdownHook_;
+  return this.command_.then(function(command) {
+    command.kill('SIGTERM');
+  });
 };
 
 
@@ -255,18 +245,28 @@ DriverService.prototype.stop = function() {
 
 
 /**
- * Manages the life and death of the Selenium standalone server. The server
- * may be obtained from http://selenium-release.storage.googleapis.com/index.html.
+ * Manages the life and death of the
+ * <a href="http://selenium-release.storage.googleapis.com/index.html">
+ * standalone Selenium server</a>.
+ *
  * @param {string} jar Path to the Selenium server jar.
- * @param {!SeleniumServer.Options} options Configuration options for the
+ * @param {SeleniumServer.Options=} opt_options Configuration options for the
  *     server.
- * @throws {Error} If an invalid port is specified.
+ * @throws {Error} If the path to the Selenium jar is not specified or if an
+ *     invalid port is specified.
  * @constructor
  * @extends {DriverService}
  */
-function SeleniumServer(jar, options) {
-  if (options.port < 0)
+function SeleniumServer(jar, opt_options) {
+  if (!jar) {
+    throw Error('Path to the Selenium jar not specified');
+  }
+
+  var options = opt_options || {};
+
+  if (options.port < 0) {
     throw Error('Port must be >= 0: ' + options.port);
+  }
 
   var port = options.port || portprober.findFreePort();
   var args = promise.when(options.jvmArgs || [], function(jvmArgs) {
@@ -278,6 +278,7 @@ function SeleniumServer(jar, options) {
   });
 
   DriverService.call(this, 'java', {
+    loopback: options.loopback,
     port: port,
     args: args,
     path: '/wd/hub',
@@ -290,23 +291,23 @@ util.inherits(SeleniumServer, DriverService);
 
 /**
  * Options for the Selenium server:
- * <ul>
- * <li>{@code port} - The port to start the server on (must be > 0). If the
- *     port is provided as a promise, the service will wait for the promise to
- *     resolve before starting.
- * <li>{@code args} - The arguments to pass to the service. If a promise is
- *     provided, the service will wait for it to resolve before starting.
- * <li>{@code jvmArgs} - The arguments to pass to the JVM. If a promise is
- *     provided, the service will wait for it to resolve before starting.
- * <li>{@code env} - The environment variables that should be visible to the
- *     server process. Defaults to inheriting the current process's
- *     environment.
- * <li>{@code stdio} - IO configuration for the spawned server process. For
- *     more information, refer to the documentation of
- *     {@code child_process.spawn}.
- * </ul>
+ *
+ * - `loopback` - Whether the server should only be accessed on this host's
+ *     loopback address.
+ * - `port` - The port to start the server on (must be > 0). If the port is
+ *     provided as a promise, the service will wait for the promise to resolve
+ *     before starting.
+ * - `args` - The arguments to pass to the service. If a promise is provided,
+ *     the service will wait for it to resolve before starting.
+ * - `jvmArgs` - The arguments to pass to the JVM. If a promise is provided,
+ *     the service will wait for it to resolve before starting.
+ * - `env` - The environment variables that should be visible to the server
+ *     process. Defaults to inheriting the current process's environment.
+ * - `stdio` - IO configuration for the spawned server process. For more
+ *     information, refer to the documentation of `child_process.spawn`.
  *
  * @typedef {{
+ *   loopback: (boolean|undefined),
  *   port: (number|!webdriver.promise.Promise.<number>),
  *   args: !(Array.<string>|webdriver.promise.Promise.<!Array.<string>>),
  *   jvmArgs: (!Array.<string>|
@@ -319,7 +320,54 @@ util.inherits(SeleniumServer, DriverService);
 SeleniumServer.Options;
 
 
+
+/**
+ * A {@link webdriver.FileDetector} that may be used when running
+ * against a remote
+ * [Selenium server](http://selenium-release.storage.googleapis.com/index.html).
+ *
+ * When a file path on the local machine running this script is entered with
+ * {@link webdriver.WebElement#sendKeys WebElement#sendKeys}, this file detector
+ * will transfer the specified file to the Selenium server's host; the sendKeys
+ * command will be updated to use the transfered file's path.
+ *
+ * __Note:__ This class depends on a non-standard command supported on the
+ * Java Selenium server. The file detector will fail if used with a server that
+ * only supports standard WebDriver commands (such as the ChromeDriver).
+ *
+ * @constructor
+ * @extends {webdriver.FileDetector}
+ * @final
+ */
+var FileDetector = function() {};
+util.inherits(webdriver.FileDetector, FileDetector);
+
+
+/** @override */
+FileDetector.prototype.handleFile = function(driver, filePath) {
+  return promise.checkedNodeCall(fs.stat, filePath).then(function(stats) {
+    if (stats.isDirectory()) {
+      throw TypeError('Uploading directories is not supported: ' + filePath);
+    }
+
+    var zip = new AdmZip();
+    zip.addLocalFile(filePath);
+    zip.getEntries()[0].header.method = AdmConstants.STORED;
+
+    var command = new webdriver.Command(webdriver.CommandName.UPLOAD_FILE)
+        .setParameter('file', zip.toBuffer().toString('base64'));
+    return driver.schedule(command,
+        'remote.FileDetector.handleFile(' + filePath + ')');
+  }, function(err) {
+    if (err.code === 'ENOENT') {
+      return filePath;  // Not a file; return original input.
+    }
+    throw err;
+  });
+};
+
 // PUBLIC API
 
 exports.DriverService = DriverService;
+exports.FileDetector = FileDetector;
 exports.SeleniumServer = SeleniumServer;
