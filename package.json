@@ -1,7 +1,7 @@
 {
-  "name": "selenium-webdriver",
+  "name": "browserstack-webdriver",
   "version": "2.47.0",
-  "description": "The official WebDriver JavaScript bindings from the Selenium project",
+  "description": "BrowserStack WebDriver JavaScript bindings from the Selenium project",
   "license": "Apache-2.0",
   "keywords": [
     "automation",
@@ -10,14 +10,14 @@
     "webdriver",
     "webdriverjs"
   ],
-  "homepage": "https://github.com/SeleniumHQ/selenium",
+  "homepage": "https://github.com/browserstack/selenium-webdriver-nodejs",
   "bugs": {
-    "url": "https://github.com/SeleniumHQ/selenium/issues"
+    "url": "https://github.com/browserstack/selenium-webdriver-nodejs/issues"
   },
   "main": "./index",
   "repository": {
     "type": "git",
-    "url": "git+https://github.com/SeleniumHQ/selenium.git"
+    "url": "git+https://github.com/browserstack/selenium-webdriver-nodejs"
   },
   "engines": {
     "node": ">= 0.12.x"
@@ -38,26 +38,5 @@
   },
   "scripts": {
     "test": "mocha --harmony -t 600000 --recursive test"
-  },
-  "_id": "selenium-webdriver@2.47.0",
-  "_shasum": "e29b52d2daa0f648c40f602f4d2a8e8bee351ea5",
-  "_from": "selenium-webdriver@2.47",
-  "_resolved": "https://registry.npmjs.org/selenium-webdriver/-/selenium-webdriver-2.47.0.tgz",
-  "_npmVersion": "2.14.2",
-  "_nodeVersion": "4.0.0",
-  "_npmUser": {
-    "name": "jmleyba",
-    "email": "jmleyba@gmail.com"
-  },
-  "maintainers": [
-    {
-      "name": "jmleyba",
-      "email": "jmleyba@gmail.com"
-    }
-  ],
-  "dist": {
-    "shasum": "e29b52d2daa0f648c40f602f4d2a8e8bee351ea5",
-    "tarball": "http://registry.npmjs.org/selenium-webdriver/-/selenium-webdriver-2.47.0.tgz"
-  },
-  "directories": {}
+  }
 }
