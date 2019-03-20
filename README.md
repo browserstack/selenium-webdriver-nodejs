@@ -1,3 +1,7 @@
+**NOTE: THIS PROJECT HAS BEEN DEPRECATED AND IS NO LONGER ACTIVELY MAINTAINED**
+
+For accessing *selenium-webdriver* samples please refer to [this](https://github.com/browserstack/automate-node-samples) repository.
+
 # browserstack-webdriver
 
 ## Installation
