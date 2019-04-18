@@ -1,17 +1,19 @@
-// Copyright 2014 Selenium committers
-// Copyright 2014 Software Freedom Conservancy
+// Licensed to the Software Freedom Conservancy (SFC) under one
+// or more contributor license agreements.  See the NOTICE file
+// distributed with this work for additional information
+// regarding copyright ownership.  The SFC licenses this file
+// to you under the Apache License, Version 2.0 (the
+// "License"); you may not use this file except in compliance
+// with the License.  You may obtain a copy of the License at
 //
-// Licensed under the Apache License, Version 2.0 (the "License");
-// you may not use this file except in compliance with the License.
-//     You may obtain a copy of the License at
+//   http://www.apache.org/licenses/LICENSE-2.0
 //
-// http://www.apache.org/licenses/LICENSE-2.0
-//
-// Unless required by applicable law or agreed to in writing, software
-// distributed under the License is distributed on an "AS IS" BASIS,
-// WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
-// See the License for the specific language governing permissions and
-// limitations under the License.
+// Unless required by applicable law or agreed to in writing,
+// software distributed under the License is distributed on an
+// "AS IS" BASIS, WITHOUT WARRANTIES OR CONDITIONS OF ANY
+// KIND, either express or implied.  See the License for the
+// specific language governing permissions and limitations
+// under the License.
 
 'use strict';
 
@@ -171,6 +173,54 @@ describe('io', function() {
     it('does not return a rejected promise if file does not exist', function() {
       return io.exists(path.join(dir, 'not-there')).then(function(exists) {
         assert.ok(!exists);
+      });
+    });
+  });
+
+  describe('unlink', function() {
+    var dir;
+
+    before(function() {
+      return io.tmpDir().then(function(d) {
+        dir = d;
+      });
+    });
+
+    it('silently succeeds if the path does not exist', function() {
+      return io.unlink(path.join(dir, 'not-there'));
+    });
+
+    it('deletes files', function() {
+      var file = path.join(dir, 'foo');
+      fs.writeFileSync(file, '');
+      return io.exists(file).then(assert.ok).then(function() {
+        return io.unlink(file);
+      }).then(function() {
+        return io.exists(file);
+      }).then(function(exists) {
+        return assert.ok(!exists);
+      });
+    });
+  });
+
+  describe('rmDir', function() {
+    it('succeeds if the designated directory does not exist', function() {
+      return io.tmpDir().then(function(d) {
+        return io.rmDir(path.join(d, 'i/do/not/exist'));
+      });
+    });
+
+    it('deletes recursively', function() {
+      return io.tmpDir().then(function(dir) {
+        fs.writeFileSync(path.join(dir, 'file1'), 'hello');
+        fs.mkdirSync(path.join(dir, 'sub'));
+        fs.mkdirSync(path.join(dir, 'sub/folder'));
+        fs.writeFileSync(path.join(dir, 'sub/folder/file2'), 'goodbye');
+
+        return io.rmDir(dir).then(function() {
+          assert.ok(!fs.existsSync(dir));
+          assert.ok(!fs.existsSync(path.join(dir, 'sub/folder/file2')));
+        });
       });
     });
   });

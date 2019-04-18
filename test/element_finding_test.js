@@ -1,36 +1,45 @@
-// Copyright 2013 Selenium committers
-// Copyright 2013 Software Freedom Conservancy
+// Licensed to the Software Freedom Conservancy (SFC) under one
+// or more contributor license agreements.  See the NOTICE file
+// distributed with this work for additional information
+// regarding copyright ownership.  The SFC licenses this file
+// to you under the Apache License, Version 2.0 (the
+// "License"); you may not use this file except in compliance
+// with the License.  You may obtain a copy of the License at
 //
-// Licensed under the Apache License, Version 2.0 (the "License");
-// you may not use this file except in compliance with the License.
-//     You may obtain a copy of the License at
+//   http://www.apache.org/licenses/LICENSE-2.0
 //
-// http://www.apache.org/licenses/LICENSE-2.0
-//
-// Unless required by applicable law or agreed to in writing, software
-// distributed under the License is distributed on an "AS IS" BASIS,
-// WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
-// See the License for the specific language governing permissions and
-// limitations under the License.
+// Unless required by applicable law or agreed to in writing,
+// software distributed under the License is distributed on an
+// "AS IS" BASIS, WITHOUT WARRANTIES OR CONDITIONS OF ANY
+// KIND, either express or implied.  See the License for the
+// specific language governing permissions and limitations
+// under the License.
 
 'use strict';
 
 var fail = require('assert').fail;
 
-var By = require('..').By,
+var Browser = require('..').Browser,
+    By = require('..').By,
     error = require('..').error,
+    until = require('..').until,
     test = require('../lib/test'),
     assert = require('../testing/assert'),
-    Browser = test.Browser,
     Pages = test.Pages;
 
 
 test.suite(function(env) {
-  var browsers = env.browsers,
-      waitForTitleToBe = env.waitForTitleToBe;
+  var browsers = env.browsers;
 
   var driver;
-  beforeEach(function() { driver = env.driver; });
+
+  test.before(function() {
+    driver = env.builder().build();
+  });
+
+  test.after(function() {
+    driver.quit();
+  });
 
   describe('finding elements', function() {
 
@@ -40,14 +49,14 @@ test.suite(function(env) {
           driver.get(Pages.formPage);
           driver.get(Pages.xhtmlTestPage);
           driver.findElement(By.linkText('click me')).click();
-          waitForTitleToBe('We Arrive Here');
+          driver.wait(until.titleIs('We Arrive Here'), 5000);
         });
 
     describe('By.id()', function() {
       test.it('should work', function() {
         driver.get(Pages.xhtmlTestPage);
         driver.findElement(By.id('linkId')).click();
-        waitForTitleToBe('We Arrive Here');
+        driver.wait(until.titleIs('We Arrive Here'), 5000);
       });
 
       test.it('should fail if ID not present on page', function() {
@@ -58,9 +67,9 @@ test.suite(function(env) {
             });
       });
 
-      test.ignore(browsers(Browser.ANDROID)).it(
-          'should find multiple elements by ID even though that ' +
-              'is malformed HTML',
+      test.it(
+          'should find multiple elements by ID even though that is ' +
+              'malformed HTML',
           function() {
             driver.get(Pages.nestedPage);
             driver.findElements(By.id('2')).then(function(elements) {
@@ -73,14 +82,14 @@ test.suite(function(env) {
       test.it('should be able to click on link identified by text', function() {
         driver.get(Pages.xhtmlTestPage);
         driver.findElement(By.linkText('click me')).click();
-        waitForTitleToBe('We Arrive Here');
+        driver.wait(until.titleIs('We Arrive Here'), 5000);
       });
 
       test.it(
         'should be able to find elements by partial link text', function() {
           driver.get(Pages.xhtmlTestPage);
           driver.findElement(By.partialLinkText('ick me')).click();
-          waitForTitleToBe('We Arrive Here');
+          driver.wait(until.titleIs('We Arrive Here'), 5000);
         });
 
       test.it('should work when link text contains equals sign', function() {
@@ -143,8 +152,7 @@ test.suite(function(env) {
                 });
           });
 
-      test.ignore(browsers(Browser.OPERA)).
-      it('works on XHTML pages', function() {
+      test.it('works on XHTML pages', function() {
         driver.get(test.whereIs('actualXhtmlPage.xhtml'));
 
         var el = driver.findElement(By.linkText('Foo'));

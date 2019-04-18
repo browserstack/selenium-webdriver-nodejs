@@ -1,17 +1,19 @@
-// Copyright 2013 Selenium committers
-// Copyright 2013 Software Freedom Conservancy
+// Licensed to the Software Freedom Conservancy (SFC) under one
+// or more contributor license agreements.  See the NOTICE file
+// distributed with this work for additional information
+// regarding copyright ownership.  The SFC licenses this file
+// to you under the Apache License, Version 2.0 (the
+// "License"); you may not use this file except in compliance
+// with the License.  You may obtain a copy of the License at
 //
-// Licensed under the Apache License, Version 2.0 (the "License");
-// you may not use this file except in compliance with the License.
-//     You may obtain a copy of the License at
+//   http://www.apache.org/licenses/LICENSE-2.0
 //
-// http://www.apache.org/licenses/LICENSE-2.0
-//
-// Unless required by applicable law or agreed to in writing, software
-// distributed under the License is distributed on an "AS IS" BASIS,
-// WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
-// See the License for the specific language governing permissions and
-// limitations under the License.
+// Unless required by applicable law or agreed to in writing,
+// software distributed under the License is distributed on an
+// "AS IS" BASIS, WITHOUT WARRANTIES OR CONDITIONS OF ANY
+// KIND, either express or implied.  See the License for the
+// specific language governing permissions and limitations
+// under the License.
 
 'use strict';
 
@@ -20,7 +22,7 @@ var assert = require('assert'),
 
 var util = require('../../http/util');
 
-describe('browserstack-webdriver/http/util', function() {
+describe('selenium-webdriver/http/util', function() {
 
   var server, baseUrl;
 
@@ -125,12 +127,12 @@ describe('browserstack-webdriver/http/util', function() {
       var isReady =  util.waitForServer(baseUrl, 200).
           then(function() { done('Did not expect to succeed'); }).
           then(null, function(e) {
-            assert.equal(err, e);
+            assert.equal('cancelled!', e.message);
           }).
           then(function() { done(); }, done);
 
       setTimeout(function() {
-        isReady.cancel(err);
+        isReady.cancel('cancelled!');
       }, 50);
     });
   });
@@ -165,16 +167,15 @@ describe('browserstack-webdriver/http/util', function() {
 
     it('can cancel wait', function(done) {
       responseCode = 404;
-      var err = Error('cancelled!');
       var isReady =  util.waitForUrl(baseUrl, 200).
           then(function() { done('Did not expect to succeed'); }).
           then(null, function(e) {
-            assert.equal(err, e);
+            assert.equal('cancelled!', e.message);
           }).
           then(function() { done(); }, done);
 
       setTimeout(function() {
-        isReady.cancel(err);
+        isReady.cancel('cancelled!');
       }, 50);
     });
   });

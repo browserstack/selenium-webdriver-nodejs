@@ -1,24 +1,28 @@
-// Copyright 2014 Selenium committers
-// Copyright 2014 Software Freedom Conservancy
+// Licensed to the Software Freedom Conservancy (SFC) under one
+// or more contributor license agreements.  See the NOTICE file
+// distributed with this work for additional information
+// regarding copyright ownership.  The SFC licenses this file
+// to you under the Apache License, Version 2.0 (the
+// "License"); you may not use this file except in compliance
+// with the License.  You may obtain a copy of the License at
 //
-// Licensed under the Apache License, Version 2.0 (the "License");
-// you may not use this file except in compliance with the License.
-//     You may obtain a copy of the License at
+//   http://www.apache.org/licenses/LICENSE-2.0
 //
-// http://www.apache.org/licenses/LICENSE-2.0
-//
-// Unless required by applicable law or agreed to in writing, software
-// distributed under the License is distributed on an "AS IS" BASIS,
-// WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
-// See the License for the specific language governing permissions and
-// limitations under the License.
+// Unless required by applicable law or agreed to in writing,
+// software distributed under the License is distributed on an
+// "AS IS" BASIS, WITHOUT WARRANTIES OR CONDITIONS OF ANY
+// KIND, either express or implied.  See the License for the
+// specific language governing permissions and limitations
+// under the License.
 
 /**
  * @fileoverview An example of starting multiple WebDriver clients that run
  * in parallel in separate control flows.
  */
 
-var webdriver = require('..');
+var webdriver = require('..'),
+    By = webdriver.By,
+    until = webdriver.until;
 
 for (var i = 0; i < 3; i++) {
   (function(n) {
@@ -28,7 +32,7 @@ for (var i = 0; i < 3; i++) {
         });
 
     var driver = new webdriver.Builder().
-        withCapabilities(webdriver.Capabilities.chrome()).
+        forBrowser('firefox').
         setControlFlow(flow).  // Comment out this line to see the difference.
         build();
 
@@ -37,13 +41,9 @@ for (var i = 0; i < 3; i++) {
     driver.manage().window().setPosition(300 * i, 400 * i);
 
     driver.get('http://www.google.com');
-    driver.findElement(webdriver.By.name('q')).sendKeys('webdriver');
-    driver.findElement(webdriver.By.name('btnG')).click();
-    driver.wait(function() {
-      return driver.getTitle().then(function(title) {
-        return 'webdriver - Google Search' === title;
-      });
-    }, 1000);
+    driver.findElement(By.name('q')).sendKeys('webdriver');
+    driver.findElement(By.name('btnG')).click();
+    driver.wait(until.titleIs('webdriver - Google Search'), 1000);
 
     driver.quit();
   })(i);

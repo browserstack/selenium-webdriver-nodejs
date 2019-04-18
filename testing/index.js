@@ -1,83 +1,69 @@
-// Copyright 2013 Selenium committers
-// Copyright 2013 Software Freedom Conservancy
+// Licensed to the Software Freedom Conservancy (SFC) under one
+// or more contributor license agreements.  See the NOTICE file
+// distributed with this work for additional information
+// regarding copyright ownership.  The SFC licenses this file
+// to you under the Apache License, Version 2.0 (the
+// "License"); you may not use this file except in compliance
+// with the License.  You may obtain a copy of the License at
 //
-// Licensed under the Apache License, Version 2.0 (the "License");
-// you may not use this file except in compliance with the License.
-//     You may obtain a copy of the License at
+//   http://www.apache.org/licenses/LICENSE-2.0
 //
-// http://www.apache.org/licenses/LICENSE-2.0
-//
-// Unless required by applicable law or agreed to in writing, software
-// distributed under the License is distributed on an "AS IS" BASIS,
-// WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
-// See the License for the specific language governing permissions and
-// limitations under the License.
+// Unless required by applicable law or agreed to in writing,
+// software distributed under the License is distributed on an
+// "AS IS" BASIS, WITHOUT WARRANTIES OR CONDITIONS OF ANY
+// KIND, either express or implied.  See the License for the
+// specific language governing permissions and limitations
+// under the License.
 
 /**
  * @fileoverview Provides wrappers around the following global functions from
- * <a href="http://visionmedia.github.io/mocha/">Mocha's BDD interface</a>:
- * <ul>
- *   <li>after
- *   <li>afterEach
- *   <li>before
- *   <li>beforeEach
- *   <li>it
- *   <li>it.only
- *   <li>it.skip
- *   <li>xit
- * </ul>
+ * [Mocha's BDD interface](https://github.com/mochajs/mocha):
  *
- * <p>The provided wrappers leverage the {@link webdriver.promise.ControlFlow}
+ * - after
+ * - afterEach
+ * - before
+ * - beforeEach
+ * - it
+ * - it.only
+ * - it.skip
+ * - xit
+ *
+ * The provided wrappers leverage the {@link webdriver.promise.ControlFlow}
  * to simplify writing asynchronous tests:
- * <pre><code>
- * var webdriver = require('browserstack-webdriver'),
- *     portprober = require('browserstack-webdriver/net/portprober'),
- *     remote = require('browserstack-webdriver/remote'),
- *     test = require('browserstack-webdriver/testing');
  *
- * test.describe('Google Search', function() {
- *   var driver, server;
+ *     var By = require('selenium-webdriver').By,
+ *         until = require('selenium-webdriver').until,
+ *         firefox = require('selenium-webdriver/firefox'),
+ *         test = require('selenium-webdriver/testing');
  *
- *   test.before(function() {
- *     server = new remote.SeleniumServer(
- *         'path/to/selenium-server-standalone.jar',
- *         {port: portprober.findFreePort()});
- *     server.start();
+ *     test.describe('Google Search', function() {
+ *       var driver;
  *
- *     driver = new webdriver.Builder().
- *         withCapabilities({'browserName': 'firefox'}).
- *         usingServer(server.address()).
- *         build();
- *   });
- *
- *   test.after(function() {
- *     driver.quit();
- *     server.stop();
- *   });
- *
- *   test.it('should append query to title', function() {
- *     driver.get('http://www.google.com');
- *     driver.findElement(webdriver.By.name('q')).sendKeys('webdriver');
- *     driver.findElement(webdriver.By.name('btnG')).click();
- *     driver.wait(function() {
- *       return driver.getTitle().then(function(title) {
- *         return 'webdriver - Google Search' === title;
+ *       test.before(function() {
+ *         driver = new firefox.Driver();
  *       });
- *     }, 1000, 'Waiting for title to update');
- *   });
- * });
- * </code></pre>
  *
- * <p>You may conditionally suppress a test function using the exported
+ *       test.after(function() {
+ *         driver.quit();
+ *       });
+ *
+ *       test.it('should append query to title', function() {
+ *         driver.get('http://www.google.com/ncr');
+ *         driver.findElement(By.name('q')).sendKeys('webdriver');
+ *         driver.findElement(By.name('btnG')).click();
+ *         driver.wait(until.titleIs('webdriver - Google Search'), 1000);
+ *       });
+ *     });
+ *
+ * You may conditionally suppress a test function using the exported
  * "ignore" function. If the provided predicate returns true, the attached
  * test case will be skipped:
- * <pre><code>
- *   test.ignore(maybe()).it('is flaky', function() {
- *     if (Math.random() < 0.5) throw Error();
- *   });
  *
- *   function maybe() { return Math.random() < 0.5; }
- * </code></pre>
+ *     test.ignore(maybe()).it('is flaky', function() {
+ *       if (Math.random() < 0.5) throw Error();
+ *     });
+ *
+ *     function maybe() { return Math.random() < 0.5; }
  */
 
 var promise = require('..').promise;
@@ -106,42 +92,66 @@ function seal(fn) {
 function wrapped(globalFn) {
   return function() {
     if (arguments.length === 1) {
-      return globalFn(asyncTestFn(arguments[0]));
+      return globalFn(makeAsyncTestFn(arguments[0]));
     }
     else if (arguments.length === 2) {
-      return globalFn(arguments[0], asyncTestFn(arguments[1]));
+      return globalFn(arguments[0], makeAsyncTestFn(arguments[1]));
     }
     else {
       throw Error('Invalid # arguments: ' + arguments.length);
     }
   };
+}
 
-  function asyncTestFn(fn) {
-    var ret = function(done) {
-      function cleanupBeforeCallback() {
-        flow.reset();
-        return cleanupBeforeCallback.mochaCallback.apply(this, arguments);
-      }
-      // We set this as an attribute of the callback function to allow us to
-      // test this properly.
-      cleanupBeforeCallback.mochaCallback = this.runnable().callback;
+/**
+ * Make a wrapper to invoke caller's test function, fn.  Run the test function
+ * within a ControlFlow.
+ *
+ * Should preserve the semantics of Mocha's Runnable.prototype.run (See
+ * https://github.com/mochajs/mocha/blob/master/lib/runnable.js#L192)
+ *
+ * @param {Function} fn
+ * @return {Function}
+ */
+function makeAsyncTestFn(fn) {
+  var async = fn.length > 0; // if test function expects a callback, its "async"
 
-      this.runnable().callback = cleanupBeforeCallback;
-
-      var testFn = fn.bind(this);
-      flow.execute(function() {
-        var done = promise.defer();
-        promise.asap(testFn(done.reject), done.fulfill, done.reject);
-        return done.promise;
-      }).then(seal(done), done);
+  var ret = function(done) {
+    var runnable = this.runnable();
+    var mochaCallback = runnable.callback;
+    runnable.callback = function() {
+      flow.reset();
+      return mochaCallback.apply(this, arguments);
     };
 
-    ret.toString = function() {
-      return fn.toString();
-    };
+    var testFn = fn.bind(this);
+    flow.execute(function controlFlowExecute() {
+      return new promise.Promise(function(fulfill, reject) {
+        if (async) {
+          // If testFn is async (it expects a done callback), resolve the promise of this
+          // test whenever that callback says to.  Any promises returned from testFn are
+          // ignored.
+          testFn(function testFnDoneCallback(err) {
+            if (err) {
+              reject(err);
+            } else {
+              fulfill();
+            }
+          });
+        } else {
+          // Without a callback, testFn can return a promise, or it will
+          // be assumed to have completed synchronously
+          fulfill(testFn());
+        }
+      }, flow);
+    }, runnable.fullTitle()).then(seal(done), done);
+  };
 
-    return ret;
-  }
+  ret.toString = function() {
+    return fn.toString();
+  };
+
+  return ret;
 }
 
 

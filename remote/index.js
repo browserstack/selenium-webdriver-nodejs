@@ -1,24 +1,31 @@
-// Copyright 2013 Software Freedom Conservancy
+// Licensed to the Software Freedom Conservancy (SFC) under one
+// or more contributor license agreements.  See the NOTICE file
+// distributed with this work for additional information
+// regarding copyright ownership.  The SFC licenses this file
+// to you under the Apache License, Version 2.0 (the
+// "License"); you may not use this file except in compliance
+// with the License.  You may obtain a copy of the License at
 //
-// Licensed under the Apache License, Version 2.0 (the "License");
-// you may not use this file except in compliance with the License.
-//     You may obtain a copy of the License at
+//   http://www.apache.org/licenses/LICENSE-2.0
 //
-// http://www.apache.org/licenses/LICENSE-2.0
-//
-// Unless required by applicable law or agreed to in writing, software
-// distributed under the License is distributed on an "AS IS" BASIS,
-// WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
-// See the License for the specific language governing permissions and
-// limitations under the License.
+// Unless required by applicable law or agreed to in writing,
+// software distributed under the License is distributed on an
+// "AS IS" BASIS, WITHOUT WARRANTIES OR CONDITIONS OF ANY
+// KIND, either express or implied.  See the License for the
+// specific language governing permissions and limitations
+// under the License.
 
 'use strict';
 
-var path = require('path'),
+var AdmZip = require('adm-zip'),
+    fs = require('fs'),
+    path = require('path'),
     url = require('url'),
     util = require('util');
 
-var promise = require('../').promise,
+var _base = require('../_base'),
+    webdriver = require('../'),
+    promise = require('../').promise,
     httpUtil = require('../http/util'),
     exec = require('../io/exec'),
     net = require('../net'),
@@ -28,24 +35,20 @@ var promise = require('../').promise,
 
 /**
  * Configuration options for a DriverService instance.
- * <ul>
- * <li>
- * <li>{@code loopback} - Whether the service should only be accessed on this
- *     host's loopback address.
- * <li>{@code port} - The port to start the server on (must be > 0). If the
- *     port is provided as a promise, the service will wait for the promise to
- *     resolve before starting.
- * <li>{@code args} - The arguments to pass to the service. If a promise is
- *     provided, the service will wait for it to resolve before starting.
- * <li>{@code path} - The base path on the server for the WebDriver wire
- *     protocol (e.g. '/wd/hub'). Defaults to '/'.
- * <li>{@code env} - The environment variables that should be visible to the
- *     server process. Defaults to inheriting the current process's
- *     environment.
- * <li>{@code stdio} - IO configuration for the spawned server process. For
- *     more information, refer to the documentation of
- *     {@code child_process.spawn}.
- * </ul>
+ *
+ * - `loopback` - Whether the service should only be accessed on this host's
+ *     loopback address.
+ * - `port` - The port to start the server on (must be > 0). If the port is
+ *     provided as a promise, the service will wait for the promise to resolve
+ *     before starting.
+ * - `args` - The arguments to pass to the service. If a promise is provided,
+ *     the service will wait for it to resolve before starting.
+ * - `path` - The base path on the server for the WebDriver wire protocol
+ *     (e.g. '/wd/hub'). Defaults to '/'.
+ * - `env` - The environment variables that should be visible to the server
+ *     process. Defaults to inheriting the current process's environment.
+ * - `stdio` - IO configuration for the spawned server process. For more
+ *     information, refer to the documentation of `child_process.spawn`.
  *
  * @typedef {{
  *   port: (number|!webdriver.promise.Promise.<number>),
@@ -61,10 +64,10 @@ var ServiceOptions;
 /**
  * Manages the life and death of a native executable WebDriver server.
  *
- * <p>It is expected that the driver server implements the
- * <a href="http://code.google.com/p/selenium/wiki/JsonWireProtocol">WebDriver
- * Wire Protocol</a>. Furthermore, the managed server should support multiple
- * concurrent sessions, so that this class may be reused for multiple clients.
+ * It is expected that the driver server implements the
+ * https://github.com/SeleniumHQ/selenium/wiki/JsonWireProtocol.
+ * Furthermore, the managed server should support multiple concurrent sessions,
+ * so that this class may be reused for multiple clients.
  *
  * @param {string} executable Path to the executable to run.
  * @param {!ServiceOptions} options Configuration options for the service.
@@ -175,12 +178,14 @@ DriverService.prototype.start = function(opt_timeoutMs) {
 
       self.command_.fulfill(command);
 
-      command.result().then(function(result) {
-        self.address_.reject(result.code == null ?
+      var earlyTermination = command.result().then(function(result) {
+        var error = result.code == null ?
             Error('Server was killed with ' + result.signal) :
-            Error('Server exited with ' + result.code));
+            Error('Server terminated early with status ' + result.code);
+        self.address_.reject(error);
         self.address_ = null;
         self.command_ = null;
+        throw error;
       });
 
       var serverUrl = url.format({
@@ -191,7 +196,14 @@ DriverService.prototype.start = function(opt_timeoutMs) {
         pathname: self.path_
       });
 
-      return httpUtil.waitForServer(serverUrl, timeout).then(function() {
+      return new promise.Promise(function(fulfill, reject) {
+        var ready = httpUtil.waitForServer(serverUrl, timeout)
+            .then(fulfill, reject);
+        earlyTermination.thenCatch(function(e) {
+          ready.cancel(e);
+          reject(Error(e.message));
+        });
+      }).then(function() {
         return serverUrl;
       });
     });
@@ -231,18 +243,28 @@ DriverService.prototype.stop = function() {
 
 
 /**
- * Manages the life and death of the Selenium standalone server. The server
- * may be obtained from http://selenium-release.storage.googleapis.com/index.html.
+ * Manages the life and death of the
+ * <a href="http://selenium-release.storage.googleapis.com/index.html">
+ * standalone Selenium server</a>.
+ *
  * @param {string} jar Path to the Selenium server jar.
- * @param {!SeleniumServer.Options} options Configuration options for the
+ * @param {SeleniumServer.Options=} opt_options Configuration options for the
  *     server.
- * @throws {Error} If an invalid port is specified.
+ * @throws {Error} If the path to the Selenium jar is not specified or if an
+ *     invalid port is specified.
  * @constructor
  * @extends {DriverService}
  */
-function SeleniumServer(jar, options) {
-  if (options.port < 0)
+function SeleniumServer(jar, opt_options) {
+  if (!jar) {
+    throw Error('Path to the Selenium jar not specified');
+  }
+
+  var options = opt_options || {};
+
+  if (options.port < 0) {
     throw Error('Port must be >= 0: ' + options.port);
+  }
 
   var port = options.port || portprober.findFreePort();
   var args = promise.when(options.jvmArgs || [], function(jvmArgs) {
@@ -266,21 +288,18 @@ util.inherits(SeleniumServer, DriverService);
 
 /**
  * Options for the Selenium server:
- * <ul>
- * <li>{@code port} - The port to start the server on (must be > 0). If the
- *     port is provided as a promise, the service will wait for the promise to
- *     resolve before starting.
- * <li>{@code args} - The arguments to pass to the service. If a promise is
- *     provided, the service will wait for it to resolve before starting.
- * <li>{@code jvmArgs} - The arguments to pass to the JVM. If a promise is
- *     provided, the service will wait for it to resolve before starting.
- * <li>{@code env} - The environment variables that should be visible to the
- *     server process. Defaults to inheriting the current process's
- *     environment.
- * <li>{@code stdio} - IO configuration for the spawned server process. For
- *     more information, refer to the documentation of
- *     {@code child_process.spawn}.
- * </ul>
+ *
+ * - `port` - The port to start the server on (must be > 0). If the port is
+ *     provided as a promise, the service will wait for the promise to resolve
+ *     before starting.
+ * - `args` - The arguments to pass to the service. If a promise is provided,
+ *     the service will wait for it to resolve before starting.
+ * - `jvmArgs` - The arguments to pass to the JVM. If a promise is provided,
+ *     the service will wait for it to resolve before starting.
+ * - `env` - The environment variables that should be visible to the server
+ *     process. Defaults to inheriting the current process's environment.
+ * - `stdio` - IO configuration for the spawned server process. For more
+ *     information, refer to the documentation of `child_process.spawn`.
  *
  * @typedef {{
  *   port: (number|!webdriver.promise.Promise.<number>),
@@ -295,7 +314,53 @@ util.inherits(SeleniumServer, DriverService);
 SeleniumServer.Options;
 
 
+
+/**
+ * A {@link webdriver.FileDetector} that may be used when running
+ * against a remote
+ * [Selenium server](http://selenium-release.storage.googleapis.com/index.html).
+ *
+ * When a file path on the local machine running this script is entered with
+ * {@link webdriver.WebElement#sendKeys WebElement#sendKeys}, this file detector
+ * will transfer the specified file to the Selenium server's host; the sendKeys
+ * command will be updated to use the transfered file's path.
+ *
+ * __Note:__ This class depends on a non-standard command supported on the
+ * Java Selenium server. The file detector will fail if used with a server that
+ * only supports standard WebDriver commands (such as the ChromeDriver).
+ *
+ * @constructor
+ * @extends {webdriver.FileDetector}
+ * @final
+ */
+var FileDetector = function() {};
+util.inherits(webdriver.FileDetector, FileDetector);
+
+
+/** @override */
+FileDetector.prototype.handleFile = function(driver, filePath) {
+  return promise.checkedNodeCall(fs.stat, filePath).then(function(stats) {
+    if (stats.isDirectory()) {
+      throw TypeError('Uploading directories is not supported: ' + filePath);
+    }
+
+    var zip = new AdmZip();
+    zip.addLocalFile(filePath);
+
+    var command = new webdriver.Command(webdriver.CommandName.UPLOAD_FILE)
+        .setParameter('file', zip.toBuffer().toString('base64'));
+    return driver.schedule(command,
+        'remote.FileDetector.handleFile(' + filePath + ')');
+  }, function(err) {
+    if (err.code === 'ENOENT') {
+      return filePath;  // Not a file; return original input.
+    }
+    throw err;
+  });
+};
+
 // PUBLIC API
 
 exports.DriverService = DriverService;
+exports.FileDetector = FileDetector;
 exports.SeleniumServer = SeleniumServer;

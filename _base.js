@@ -1,17 +1,19 @@
-// Copyright 2012 Selenium committers
-// Copyright 2012 Software Freedom Conservancy
+// Licensed to the Software Freedom Conservancy (SFC) under one
+// or more contributor license agreements.  See the NOTICE file
+// distributed with this work for additional information
+// regarding copyright ownership.  The SFC licenses this file
+// to you under the Apache License, Version 2.0 (the
+// "License"); you may not use this file except in compliance
+// with the License.  You may obtain a copy of the License at
 //
-// Licensed under the Apache License, Version 2.0 (the "License");
-// you may not use this file except in compliance with the License.
-//     You may obtain a copy of the License at
+//   http://www.apache.org/licenses/LICENSE-2.0
 //
-// http://www.apache.org/licenses/LICENSE-2.0
-//
-// Unless required by applicable law or agreed to in writing, software
-// distributed under the License is distributed on an "AS IS" BASIS,
-// WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
-// See the License for the specific language governing permissions and
-// limitations under the License.
+// Unless required by applicable law or agreed to in writing,
+// software distributed under the License is distributed on an
+// "AS IS" BASIS, WITHOUT WARRANTIES OR CONDITIONS OF ANY
+// KIND, either express or implied.  See the License for the
+// specific language governing permissions and limitations
+// under the License.
 
 /**
  * @fileoverview The base module responsible for bootstrapping the Closure
@@ -92,12 +94,21 @@ function Context(opt_configureForTesting) {
     require: require,
     Buffer: Buffer,
     Error: Error,
+    TypeError: TypeError,
     CLOSURE_BASE_PATH: path.dirname(CLOSURE_BASE_FILE_PATH) + '/',
-    CLOSURE_IMPORT_SCRIPT: function(src) {
-      loadScript(src);
+    CLOSURE_IMPORT_SCRIPT: function(src, opt_srcText) {
+      if (opt_srcText !== undefined) {
+        // Windows paths use backslashes, which must be properly escaped before
+        // evaluated with vm.runInContext.
+        opt_srcText = opt_srcText.replace(/\\/g, '/');
+        vm.runInContext(opt_srcText, closure, src);
+      } else {
+        loadScript(src);
+      }
       return true;
     },
     CLOSURE_NO_DEPS: !isDevMode(),
+    CLOSURE_UNCOMPILED_DEFINES: {'goog.json.USE_NATIVE_JSON': true},
     goog: {}
   });
   closure.window = closure.top = closure;
@@ -113,6 +124,16 @@ function Context(opt_configureForTesting) {
 
   loadScript(CLOSURE_BASE_FILE_PATH);
   loadScript(DEPS_FILE_PATH);
+
+  // Redefine retrieveAndExecModule_ to load modules. Closure's version
+  // assumes XMLHttpRequest is defined (and by extension that scripts
+  // are being loaded from a server).
+  closure.goog.retrieveAndExecModule_ = function(src) {
+    var normalizedSrc = path.normalize(src);
+    var contents = fs.readFileSync(normalizedSrc, 'utf8');
+    contents = closure.goog.wrapModule_(src, contents);
+    vm.runInContext(contents, closure, normalizedSrc);
+  };
 
   /**
    * Synchronously loads a script into the protected Closure context.

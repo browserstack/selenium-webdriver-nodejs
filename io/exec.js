@@ -1,17 +1,19 @@
-// Copyright 2014 Selenium committers
-// Copyright 2014 Software Freedom Conservancy
+// Licensed to the Software Freedom Conservancy (SFC) under one
+// or more contributor license agreements.  See the NOTICE file
+// distributed with this work for additional information
+// regarding copyright ownership.  The SFC licenses this file
+// to you under the Apache License, Version 2.0 (the
+// "License"); you may not use this file except in compliance
+// with the License.  You may obtain a copy of the License at
 //
-// Licensed under the Apache License, Version 2.0 (the "License");
-// you may not use this file except in compliance with the License.
-//     You may obtain a copy of the License at
+//   http://www.apache.org/licenses/LICENSE-2.0
 //
-// http://www.apache.org/licenses/LICENSE-2.0
-//
-// Unless required by applicable law or agreed to in writing, software
-// distributed under the License is distributed on an "AS IS" BASIS,
-// WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
-// See the License for the specific language governing permissions and
-// limitations under the License.
+// Unless required by applicable law or agreed to in writing,
+// software distributed under the License is distributed on an
+// "AS IS" BASIS, WITHOUT WARRANTIES OR CONDITIONS OF ANY
+// KIND, either express or implied.  See the License for the
+// specific language governing permissions and limitations
+// under the License.
 
 'use strict';
 
@@ -22,15 +24,12 @@ var promise = require('..').promise;
 
 /**
  * A hash with configuration options for an executed command.
- * <ul>
- * <li>
- * <li>{@code args} - Command line arguments.
- * <li>{@code env} - Command environment; will inherit from the current process
- *     if missing.
- * <li>{@code stdio} - IO configuration for the spawned server process. For
- *     more information, refer to the documentation of
- *     {@code child_process.spawn}.
- * </ul>
+ *
+ * - `args` - Command line arguments.
+ * - `env` - Command environment; will inherit from the current process if
+ *     missing.
+ * - `stdio` - IO configuration for the spawned server process. For more
+ *     information, refer to the documentation of `child_process.spawn`.
  *
  * @typedef {{
  *   args: (!Array.<string>|undefined),

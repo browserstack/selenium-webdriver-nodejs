@@ -1,36 +1,42 @@
 {
-    "name": "browserstack-webdriver",
-    "version": "2.43.5",
-    "description": "BrowserStack WebDriver JavaScript bindings with keep alive support",
-    "keywords": [
-        "automation",
-        "selenium",
-        "testing",
-        "webdriver",
-        "webdriverjs"
-    ],
-    "homepage": "https://github.com/browserstack/selenium-webdriver-nodejs",
-    "bugs": {
-        "url": "https://github.com/browserstack/selenium-webdriver-nodejs/issues"
-    },
-    "main": "./index",
-    "repository": {
-        "type": "git",
-        "url": "https://github.com/browserstack/selenium-webdriver-nodejs"
-    },
-    "engines": {
-        "node": ">= 0.8.x"
-    },
-    "dependencies": {
-        "adm-zip": "0.4.4",
-        "tmp": "0.0.24",
-        "xml2js": "0.4.4",
-        "keep-alive-agent": "*"
-    },
-    "devDependencies" : {
-        "mocha" : "~1.10.0"
-    },
-    "scripts": {
-        "test": "node_modules/.bin/mocha -t 600000 --recursive test"
-    }
+  "name": "browserstack-webdriver",
+  "version": "2.47.0",
+  "description": "BrowserStack WebDriver JavaScript bindings from the Selenium project",
+  "license": "Apache-2.0",
+  "keywords": [
+    "automation",
+    "selenium",
+    "testing",
+    "webdriver",
+    "webdriverjs"
+  ],
+  "homepage": "https://github.com/browserstack/selenium-webdriver-nodejs",
+  "bugs": {
+    "url": "https://github.com/browserstack/selenium-webdriver-nodejs/issues"
+  },
+  "main": "./index",
+  "repository": {
+    "type": "git",
+    "url": "git+https://github.com/browserstack/selenium-webdriver-nodejs"
+  },
+  "engines": {
+    "node": ">= 0.12.x"
+  },
+  "dependencies": {
+    "adm-zip": "0.4.4",
+    "rimraf": "^2.2.8",
+    "tmp": "0.0.24",
+    "ws": "^0.8.0",
+    "xml2js": "0.4.4"
+  },
+  "devDependencies": {
+    "express": "^4.11.2",
+    "mocha": ">= 1.21.x",
+    "multer": "^0.1.7",
+    "promises-aplus-tests": "^2.1.0",
+    "serve-index": "^1.6.1"
+  },
+  "scripts": {
+    "test": "mocha --harmony -t 600000 --recursive test"
+  }
 }
